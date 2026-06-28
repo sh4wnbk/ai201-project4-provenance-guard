@@ -7,10 +7,13 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from cerebras.cloud.sdk import Cerebras
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 import store
 import pipeline
 from stylometric import length_guard
+from config import RATE_LIMITS
 
 load_dotenv(Path(__file__).parent / ".env")
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +22,16 @@ app = Flask(__name__)
 store.init_db()
 _client = Cerebras(api_key=os.environ["CEREBRAS_API_KEY"])
 
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    storage_uri="memory://",
+    default_limits=[],
+)
+
 
 @app.route("/submit", methods=["POST"])
+@limiter.limit(RATE_LIMITS)
 def submit():
     body = request.get_json(silent=True) or {}
     text = body.get("text", "").strip()
