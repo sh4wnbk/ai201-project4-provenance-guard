@@ -317,3 +317,45 @@ spec sections fed in, what is requested, and how output is verified before wirin
 Tests are written alongside each pure function in M3–M5, not bolted on after. The
 scoring tests double as the "how I validated scores are meaningful" evidence the
 README requires.
+
+## Stretch: Analytics Dashboard
+
+A read-only view over the audit log. This is the logging/monitoring split made
+concrete: the audit log reconstructs the past; the dashboard reads it to show
+current patterns. No new storage, no new signal — pure aggregation over existing
+log entries.
+
+### Endpoint
+
+`GET /analytics` returns JSON with three metrics. Thin route: it reads the log
+via the store and calls a pure aggregation function.
+
+### Metrics
+
+1. **Verdict distribution (detection pattern).** Count and fraction of
+   classifications that landed likely_ai / likely_human / uncertain. Computed over
+   classification entries only, not appeals.
+
+2. **Appeal rate.** Fraction of classified content that was appealed: distinct
+   content_ids with at least one appeal, divided by total classifications. Defined
+   on distinct content_ids so multiple appeals on one item can't push it past 100%.
+
+3. **Uncertain breakdown by reason (chosen metric).** Of the uncertain verdicts,
+   the share tagged weak_corroboration / disagreement / weak_evidence /
+   llm_unavailable. This surfaces how often the fairness guard fires — it reports
+   on the system's own conservatism, not just its outputs, and ties directly to the
+   correlated-signal finding from Gate 0.
+
+### Design
+
+- `analytics.py`: `compute_analytics(entries) -> dict`, pure. Takes log entries as
+  a parameter (no DB access inside), so it's testable offline with hand-built
+  lists — same pattern as the LLM signal taking the client as a parameter.
+- Empty log returns zeros, not errors: appeal rate and every fraction must guard
+  against divide-by-zero.
+
+### Tests
+
+`tests/test_analytics.py`: hand-built entry lists asserting each of the three
+metrics computes correctly, plus the empty-log case (all zeros, no division error)
+and a mixed case with appeals on a subset of content_ids.
