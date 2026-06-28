@@ -109,11 +109,11 @@ Two submissions at different confidence levels, with the actual signal scores:
 |------------|-----------|
 | sty_score  | 0.700     |
 | llm_score  | 0.780     |
-| combined   | 0.740     |
+| combined   | 0.7401    |
 | confidence | 0.442     |
 | label      | Likely AI |
 
-Both signals are live and agree (gap of 0.080). Combined 0.740 is 0.240 above the
+Both signals are live and agree (gap of 0.080). Combined 0.7401 is 0.2401 above the
 midpoint, so confidence lands at 0.442. This is the higher-confidence submission
 of the pair — both signals ran, both pointed AI, and neither is estimated.
 
@@ -121,17 +121,17 @@ of the pair — both signals ran, both pointed AI, and neither is estimated.
 
 | field        | value               |
 |--------------|---------------------|
-| sty_score    | 0.911               |
+| sty_score    | 0.9114              |
 | llm_score    | 0.600 (measured)    |
-| combined     | 0.756               |
-| confidence   | 0.352               |
+| combined     | 0.7557              |
+| confidence   | 0.3521              |
 | label        | Uncertain           |
 | audit_reason | weak_corroboration  |
 
-The stylometric signal accuses (0.911) but the LLM only mildly agrees (0.600).
+The stylometric signal accuses (0.9114) but the LLM only mildly agrees (0.600).
 The corroboration guard fires — when sty > 0.5 and llm < 0.70, the verdict is
 forced to Uncertain regardless of what the confidence gate would say. Without the
-guard, confidence 0.352 just clears T_HIGH = 0.35 and the result would be Likely
+guard, confidence 0.3521 just clears T_HIGH = 0.35 and the result would be Likely
 AI, a false label by a margin of 0.002. This is the low-confidence half of the
 pair and the system's primary known weakness — formal technical writing scores high
 on both signals for structural reasons unrelated to authorship.
