@@ -6,7 +6,7 @@ all pure logic lives in the imported modules.
 import uuid
 from datetime import datetime, timezone
 
-from config import SHORT_CIRCUIT_ENABLED, STY_HUMAN_SKIP
+from config import SHORT_CIRCUIT_ENABLED, STY_HUMAN_SKIP, REASON_LLM_FAILURE
 from stylometric import length_guard, stylometric_score
 from llm_signal import llm_score
 from scoring import combined_score, confidence_score, classify_label
@@ -74,7 +74,7 @@ def classify(text: str, llm_client) -> dict:
             "combined": None,
             "confidence": None,
             "label_key": "uncertain",
-            "audit_reason": "llm_failure",
+            "audit_reason": REASON_LLM_FAILURE,
             "label": label_text("uncertain"),
             "llm_skipped": False,
         }

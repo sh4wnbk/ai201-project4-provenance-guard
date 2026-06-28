@@ -1,5 +1,8 @@
 """Pure scoring functions — no I/O, no state."""
-from config import T_HIGH, DISAGREE, LLM_CORROBORATE_MIN
+from config import (
+    T_HIGH, DISAGREE, LLM_CORROBORATE_MIN,
+    REASON_WEAK_CORROBORATION, REASON_DISAGREEMENT, REASON_WEAK_EVIDENCE,
+)
 
 
 def combined_score(sty: float, llm: float) -> float:
@@ -31,7 +34,7 @@ def classify_label(sty: float, llm: float) -> tuple[str, str | None]:
     """
     # Step 1 — asymmetric fairness guard
     if sty > 0.5 and llm < LLM_CORROBORATE_MIN:
-        return "uncertain", "weak_corroboration"
+        return "uncertain", REASON_WEAK_CORROBORATION
 
     # Step 2 — confidence gate
     comb = combined_score(sty, llm)
@@ -44,5 +47,5 @@ def classify_label(sty: float, llm: float) -> tuple[str, str | None]:
 
     # Step 3 — uncertain; record why
     if abs(sty - llm) >= DISAGREE:
-        return "uncertain", "disagreement"
-    return "uncertain", "weak_evidence"
+        return "uncertain", REASON_DISAGREEMENT
+    return "uncertain", REASON_WEAK_EVIDENCE
