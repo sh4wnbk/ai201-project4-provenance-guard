@@ -12,6 +12,7 @@ from flask_limiter.util import get_remote_address
 
 import store
 import pipeline
+import analytics
 from stylometric import length_guard
 from config import RATE_LIMITS
 
@@ -97,6 +98,12 @@ def appeal():
 def log():
     limit = request.args.get("limit", 50, type=int)
     return jsonify(store.get_log(limit)), 200
+
+
+@app.route("/analytics", methods=["GET"])
+def analytics_view():
+    entries = store.get_log(limit=10_000)
+    return jsonify(analytics.compute_analytics(entries)), 200
 
 
 if __name__ == "__main__":

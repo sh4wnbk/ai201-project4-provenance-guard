@@ -318,7 +318,24 @@ Tests are written alongside each pure function in M3–M5, not bolted on after. 
 scoring tests double as the "how I validated scores are meaningful" evidence the
 README requires.
 
-## Stretch: Analytics Dashboard
+## Stretch Feature: Analytics Dashboard
+
+`GET /analytics` returns a read-only aggregate over the audit log — the
+logging/monitoring split in practice: the log reconstructs the past, the
+dashboard reads it to show current patterns. Three metrics:
+
+- **Verdict distribution** — count and fraction of classifications that landed
+  likely_ai / likely_human / uncertain.
+- **Appeal rate** — distinct content_ids with at least one appeal, over total
+  classifications (defined on distinct ids so repeat appeals can't exceed 100%).
+- **Uncertain by reason** — of the uncertain verdicts, the share tagged
+  weak_corroboration / disagreement / weak_evidence / llm_unavailable. This
+  reports how often the fairness guard fires, not just what the system output.
+
+The breakdown uses a fixed schema seeded from the shared UNCERTAIN_REASONS
+constant, so a reason that never fired reports 0 rather than being absent — an
+asserted zero, not an ambiguous gap. Aggregation is a pure function over log
+entries, tested offline including the empty-log case.
 
 A read-only view over the audit log. This is the logging/monitoring split made
 concrete: the audit log reconstructs the past; the dashboard reads it to show
