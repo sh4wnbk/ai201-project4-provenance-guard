@@ -101,40 +101,36 @@ The label is decided in this order:
 
 ### Worked examples
 
-Two submissions at different confidence levels, with the actual signal scores:
+Three live submissions, with the actual signal scores the API returned:
 
-**Higher confidence — clearly AI (both signals measured)**
+| field        | clear human              | clear AI         | formal human        |
+|--------------|--------------------------|------------------|---------------------|
+| sty_score    | 0.1263                   | 0.7003           | 0.9114              |
+| llm_score    | skipped (short-circuit)  | 0.78 (measured)  | 0.60 (measured)     |
+| combined     | 0.1263                   | 0.7401           | 0.7557              |
+| confidence   | 0.7474                   | 0.442            | 0.3521              |
+| label        | Likely human             | Likely AI        | Uncertain           |
+| audit_reason | —                        | —                | weak_corroboration  |
 
-| field      | value     |
-|------------|-----------|
-| sty_score  | 0.700     |
-| llm_score  | 0.780     |
-| combined   | 0.7401    |
-| confidence | 0.442     |
-| label      | Likely AI |
+The high-confidence and lower-confidence pair: **clear human at 0.7474** and
+**formal human at 0.3521** — confidence tracks the verdict, not just the direction.
 
-Both signals are live and agree (gap of 0.080). Combined 0.7401 is 0.2401 above the
-midpoint, so confidence lands at 0.442. This is the higher-confidence submission
-of the pair — both signals ran, both pointed AI, and neither is estimated.
-
-**Low confidence — formal human (the fairness case)**
-
-| field        | value               |
-|--------------|---------------------|
-| sty_score    | 0.9114              |
-| llm_score    | 0.600 (measured)    |
-| combined     | 0.7557              |
-| confidence   | 0.3521              |
-| label        | Uncertain           |
-| audit_reason | weak_corroboration  |
-
-The stylometric signal accuses (0.9114) but the LLM only mildly agrees (0.600).
-The corroboration guard fires — when sty > 0.5 and llm < 0.70, the verdict is
-forced to Uncertain regardless of what the confidence gate would say. Without the
-guard, confidence 0.3521 just clears T_HIGH = 0.35 and the result would be Likely
-AI, a false label by a margin of 0.002. This is the low-confidence half of the
-pair and the system's primary known weakness — formal technical writing scores high
-on both signals for structural reasons unrelated to authorship.
+- **Clear human** short-circuits: the stylometric score (0.1263) is below
+  STY_HUMAN_SKIP, so the LLM call is skipped to save cost. `combined` is the
+  stylometric value alone, and confidence here is the stylometric-only quantity
+  2·|sty − 0.5|, not the two-signal formula. The label still reads "we didn't
+  find signs of AI" because the structural signal found none — but only one
+  signal ran.
+- **Clear AI** runs both signals; both are measured. Confidence is moderate
+  (0.442), not high, because this text's burstiness isn't extreme — the
+  stylometric signal can't strongly separate it from lightly-edited AI, so the
+  verdict leans on the LLM. The system reports that honestly rather than inflating
+  the score.
+- **Formal human** is the fairness case: stylometric accuses (0.9114), the LLM
+  only mildly agrees (0.60), so the corroboration guard routes it to Uncertain
+  instead of Likely AI. Without the guard, confidence 0.3521 just clears
+  T_HIGH = 0.35 and the result would be Likely AI — a false label by a margin
+  of 0.002. This is the lower-confidence example and the system's known weakness.
 
 **How I validated the scores are meaningful.** The scoring tests run the four
 rubric inputs through the pipeline and assert each lands in the right category for
