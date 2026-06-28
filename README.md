@@ -103,18 +103,19 @@ The label is decided in this order:
 
 Two submissions at different confidence levels, with the actual signal scores:
 
-**High confidence — clearly human**
+**Higher confidence — clearly AI (both signals measured)**
 
-| field      | value        |
-|------------|--------------|
-| sty_score  | 0.126        |
-| llm_score  | 0.150        |
-| combined   | 0.138        |
-| confidence | 0.707        |
-| label      | Likely human |
+| field      | value     |
+|------------|-----------|
+| sty_score  | 0.700     |
+| llm_score  | 0.780     |
+| combined   | 0.740     |
+| confidence | 0.442     |
+| label      | Likely AI |
 
-Both signals agree (gap of 0.024) and the verdict is far from 0.5 (combined 0.138
-is 0.362 below the midpoint), so confidence lands high at 0.707.
+Both signals are live and agree (gap of 0.080). Combined 0.740 is 0.240 above the
+midpoint, so confidence lands at 0.442. This is the higher-confidence submission
+of the pair — both signals ran, both pointed AI, and neither is estimated.
 
 **Low confidence — formal human (the fairness case)**
 

@@ -329,7 +329,7 @@ dashboard reads it to show current patterns. Three metrics:
 - **Appeal rate** — distinct content_ids with at least one appeal, over total
   classifications (defined on distinct ids so repeat appeals can't exceed 100%).
 - **Uncertain by reason** — of the uncertain verdicts, the share tagged
-  weak_corroboration / disagreement / weak_evidence / llm_unavailable. This
+  weak_corroboration / disagreement / weak_evidence / llm_failure. This
   reports how often the fairness guard fires, not just what the system output.
 
 The breakdown uses a fixed schema seeded from the shared UNCERTAIN_REASONS
@@ -359,7 +359,7 @@ via the store and calls a pure aggregation function.
 
 3. **Uncertain breakdown by reason (chosen metric).** Of the uncertain verdicts,
    the share tagged weak_corroboration / disagreement / weak_evidence /
-   llm_unavailable. This surfaces how often the fairness guard fires — it reports
+   llm_failure. This surfaces how often the fairness guard fires — it reports
    on the system's own conservatism, not just its outputs, and ties directly to the
    correlated-signal finding from Gate 0.
 
