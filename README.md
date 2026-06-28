@@ -99,6 +99,42 @@ The label is decided in this order:
 
 `T_HIGH = 0.35` and `LLM_CORROBORATE_MIN = 0.70` are in `config.py`.
 
+### Worked examples
+
+Two submissions at different confidence levels, with the actual signal scores:
+
+**High confidence — clearly human**
+
+| field      | value        |
+|------------|--------------|
+| sty_score  | 0.126        |
+| llm_score  | 0.150        |
+| combined   | 0.138        |
+| confidence | 0.707        |
+| label      | Likely human |
+
+Both signals agree (gap of 0.024) and the verdict is far from 0.5 (combined 0.138
+is 0.362 below the midpoint), so confidence lands high at 0.707.
+
+**Low confidence — formal human (the fairness case)**
+
+| field        | value               |
+|--------------|---------------------|
+| sty_score    | 0.911               |
+| llm_score    | 0.600 (measured)    |
+| combined     | 0.756               |
+| confidence   | 0.352               |
+| label        | Uncertain           |
+| audit_reason | weak_corroboration  |
+
+The stylometric signal accuses (0.911) but the LLM only mildly agrees (0.600).
+The corroboration guard fires — when sty > 0.5 and llm < 0.70, the verdict is
+forced to Uncertain regardless of what the confidence gate would say. Without the
+guard, confidence 0.352 just clears T_HIGH = 0.35 and the result would be Likely
+AI, a false label by a margin of 0.002. This is the low-confidence half of the
+pair and the system's primary known weakness — formal technical writing scores high
+on both signals for structural reasons unrelated to authorship.
+
 **How I validated the scores are meaningful.** The scoring tests run the four
 rubric inputs through the pipeline and assert each lands in the right category for
 the right reason. The stylometric half is pinned: burstiness has to reproduce
