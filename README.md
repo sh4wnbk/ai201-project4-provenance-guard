@@ -8,6 +8,10 @@ The detector is deliberately conservative: on a writing platform, falsely
 labeling a real person's work as AI is worse than missing a bot, so the system is
 built to refuse to accuse when its two signals don't strongly agree.
 
+## Project Walkthrough Video
+
+[Walkthrough video](https://drive.google.com/file/d/1M-4T0qirrfNO4hsGj-dAtL4_y6lNThWw/view?usp=sharing).
+
 ## Architecture
 
 A submission takes this path:
