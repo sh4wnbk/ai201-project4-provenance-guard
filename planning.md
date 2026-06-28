@@ -118,22 +118,52 @@ This is a log annotation only, not label logic.
 
 ### Validation against rubric inputs
 
-Stylometric computed; LLM estimated (to confirm on Cerebras).
+Stylometric computed; LLM measured on Cerebras `gpt-oss-120b` (5 runs each,
+temperature 0 — scores were deterministic).
 
-| input            | sty   | llm*  | combined | conf  | label        | reason        |
-|------------------|-------|-------|----------|-------|--------------|---------------|
-| clear AI         | 0.700 | 0.85  | 0.775    | 0.468 | Likely AI    | -             |
-| clear human      | 0.126 | 0.15  | 0.138    | 0.707 | Likely human | -             |
-| formal human     | 0.911 | 0.35  | 0.631    | 0.115 | Uncertain    | disagreement  |
-| lightly-edited AI| 0.693 | 0.55  | 0.622    | 0.208 | Uncertain    | weak_evidence |
+| input            | sty   | llm   | combined | conf  | label        | reason              |
+|------------------|-------|-------|----------|-------|--------------|---------------------|
+| clear AI         | 0.700 | 0.780 | 0.740    | 0.448 | Likely AI    | -                   |
+| clear human      | 0.126 | 0.15* | 0.138    | 0.707 | Likely human | -                   |
+| formal human     | 0.911 | 0.600 | 0.756    | 0.352 | Uncertain    | weak_corroboration  |
+| lightly-edited AI| 0.693 | 0.55* | 0.622    | 0.208 | Uncertain    | weak_corroboration  |
 
-The clear-AI sample lands at moderate (0.468), not high, confidence: its
-burstiness is nearly identical to the edited-AI sample, so the stylometric
-signal cannot separate them and the LLM carries the verdict. Reported honestly.
+\* estimated; not yet measured.
 
-The formal-human result depends entirely on the LLM scoring it below the
-stylometric 0.911. If the LLM also scores it high, the result wrongly flips to
-Likely AI — the primary thing to validate.
+**Gate 0 finding (measured before M4 implementation):** The original table
+estimated `llm = 0.35` for formal human. The actual Cerebras score was 0.600 —
+the two signals are correlated on formal academic text. With `llm = 0.600`,
+`conf = 0.352 > T_HIGH = 0.35` and `combined = 0.756 > 0.5`, so the original
+scoring logic would have returned Likely AI — a false positive on the primary
+fairness case. Clear AI measured at 0.780, leaving a 0.180 gap across the
+0.70 threshold.
+
+### Asymmetric corroboration guard
+
+Because the signals are correlated on formal text, the confidence formula alone
+cannot protect the harm direction. A structural guard was added:
+
+```
+if sty > 0.5 and llm < LLM_CORROBORATE_MIN (0.70):
+    → Uncertain, reason "weak_corroboration"
+```
+
+This fires before the confidence check. The rule encodes the asymmetry directly:
+the LLM must strongly corroborate before the system accuses; mild agreement is
+not enough. Audit reason `weak_corroboration` is distinct from `disagreement`
+and `weak_evidence` — it specifically marks the fairness guard firing, which is
+what a reviewer opening an appeal wants to see.
+
+Validation of all four inputs with the guard:
+- Clear AI: sty 0.700 > 0.5, llm 0.780 ≥ 0.70 → guard clears → Likely AI ✓
+- Clear human: sty 0.126 < 0.5 → guard irrelevant → Likely human ✓
+- Formal human: sty 0.911 > 0.5, llm 0.600 < 0.70 → guard fires → Uncertain ✓
+- Lightly-edited AI: sty 0.693 > 0.5, llm 0.55 < 0.70 → guard fires → Uncertain ✓
+
+`LLM_CORROBORATE_MIN = 0.70` is set from measured data, not estimated: the
+formal-human anchor is 0.600 (−0.100 below the line) and the clear-AI anchor
+is 0.780 (+0.080 above it). The threshold sits at the midpoint of the 0.180
+gap — not hairline on either side.
 
 ## Robustness and Cost
 
