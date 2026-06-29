@@ -30,3 +30,6 @@ htmlcov/
 
 # macOS
 .DS_Store
+
+# Runtime database
+*.db
