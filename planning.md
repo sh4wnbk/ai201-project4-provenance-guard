@@ -376,3 +376,68 @@ via the store and calls a pure aggregation function.
 `tests/test_analytics.py`: hand-built entry lists asserting each of the three
 metrics computes correctly, plus the empty-log case (all zeros, no division error)
 and a mixed case with appeals on a subset of content_ids.
+
+## Stretch: Provenance Certificate
+
+A creator-level "verified human" credential, earned through attestation plus
+human review. Mirrors the appeals pattern: a creator submits, status goes to
+pending, a reviewer decides. The detector informs the reviewer but never gates
+the credential.
+
+### Why human review, not an automated check
+
+A writing-sample challenge that auto-verifies by running the detector would
+inherit the detector's formal-text bias — it could deny the exact formal and
+non-native writers the system exists to protect. So verification is a human
+judgment; the detector's read on the sample is advisory input to the reviewer,
+not a gate.
+
+### What it is and isn't
+
+- Creator-level, not content-level. Detection still runs on every submission,
+  because a verified human can still post AI-generated text.
+- A trust signal, not proof. Attestation is self-reported; the badge reflects a
+  completed review, not cryptographic proof of authorship.
+
+### Flow
+
+```
+POST /verify (creator_id, sample_text, attestation)
+  -> run detector on sample_text (advisory only)
+  -> creator status -> pending_review
+  -> audit log: verification request + advisory detector read
+  -> response: pending
+
+POST /verify/review (creator_id, approve)   # reviewer action
+  -> creator status -> verified_human | denied
+  -> audit log: review decision
+  -> response: confirmation
+```
+
+### Verified label (distinct from the transparency labels)
+
+When a verified creator submits, the /submit response carries a `certificate`
+field alongside the normal `label`:
+
+> ✓ Verified human creator — completed authorship verification. This badge
+> reflects the creator's verification, not an analysis of this text.
+
+### Storage
+
+Creator verification status (`unverified` / `pending_review` / `verified_human`
+/ `denied`) lives in a creator-keyed store, separate from the content-keyed
+status store. Built on the injected Store class via a new `creator_status` table.
+
+### Edge case
+
+A verified creator who later posts AI text: the certificate still shows (it's
+about the creator) but the detection label still reads Likely AI — the two
+fields disagree by design, and that disagreement is the honest signal.
+
+### Tests
+
+`tests/test_certificate.py`: creator-status round-trip and default (`unverified`);
+`/verify` sets `pending_review` and logs advisory read; `/verify/review` flips
+status both ways and logs; a verified creator's `/submit` includes `certificate`;
+an unverified creator's `/submit` does not; certificate text is distinct from all
+three transparency label variants.
