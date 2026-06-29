@@ -10,17 +10,17 @@ from cerebras.cloud.sdk import Cerebras
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-import store
+from store import Store
 import pipeline
 import analytics
 from stylometric import length_guard
-from config import RATE_LIMITS
+from config import RATE_LIMITS, DB_PATH
 
 load_dotenv(Path(__file__).parent / ".env")
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-store.init_db()
+store = Store(DB_PATH)
 _client = Cerebras(api_key=os.environ["CEREBRAS_API_KEY"])
 
 limiter = Limiter(

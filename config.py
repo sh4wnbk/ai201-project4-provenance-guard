@@ -27,6 +27,8 @@ UNCERTAIN_REASONS = (
     REASON_LLM_FAILURE,
 )
 
+DB_PATH = "provenance.db"
+
 # Rate limiting
 RATE_LIMITS = "10 per minute;100 per day"
 

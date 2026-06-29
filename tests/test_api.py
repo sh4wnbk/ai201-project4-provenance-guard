@@ -6,7 +6,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 
-import store
+from store import Store
 
 # Text that passes the length guard and lands "likely_ai" with llm=0.85
 CLEAR_AI = (
@@ -27,8 +27,10 @@ CLEAR_HUMAN = (
 
 @pytest.fixture(autouse=True)
 def fresh_store(tmp_path):
-    store.init_db(str(tmp_path / "test.db"))
-    yield
+    import app as flask_app
+    s = Store(str(tmp_path / "test.db"))
+    flask_app.store = s
+    yield s
 
 
 @pytest.fixture()
@@ -99,34 +101,34 @@ def test_appeal_unknown_content_id_returns_404(api):
     assert resp.status_code == 404
 
 
-def test_appeal_flips_status_to_under_review(api):
+def test_appeal_flips_status_to_under_review(api, fresh_store):
     content_id = _submit(api).get_json()["content_id"]
     resp = _appeal(api, content_id)
     assert resp.status_code == 200
-    assert store.get_status(content_id) == "under_review"
+    assert fresh_store.get_status(content_id) == "under_review"
 
 
-def test_appeal_appends_log_row_leaves_original_intact(api):
+def test_appeal_appends_log_row_leaves_original_intact(api, fresh_store):
     content_id = _submit(api).get_json()["content_id"]
-    original = store.get_log_entry(content_id)
+    original = fresh_store.get_log_entry(content_id)
 
     _appeal(api, content_id)
 
-    log = store.get_log(limit=10)
+    log = fresh_store.get_log(limit=10)
     entry_types = [e["entry_type"] for e in log]
     assert "classification" in entry_types
     assert "appeal" in entry_types
     # Original classification row is byte-identical
-    assert store.get_log_entry(content_id) == original
+    assert fresh_store.get_log_entry(content_id) == original
 
 
-def test_status_flips_independently_of_log_content(api):
+def test_status_flips_independently_of_log_content(api, fresh_store):
     content_id = _submit(api).get_json()["content_id"]
-    assert store.get_status(content_id) == "classified"
+    assert fresh_store.get_status(content_id) == "classified"
     _appeal(api, content_id)
-    assert store.get_status(content_id) == "under_review"
+    assert fresh_store.get_status(content_id) == "under_review"
     # Log still has the original classification entry
-    assert store.get_log_entry(content_id)["entry_type"] == "classification"
+    assert fresh_store.get_log_entry(content_id)["entry_type"] == "classification"
 
 
 # --- Rate limiting ---
