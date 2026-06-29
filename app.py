@@ -14,7 +14,7 @@ from store import Store
 import pipeline
 import analytics
 from stylometric import length_guard
-from config import RATE_LIMITS, DB_PATH
+from config import RATE_LIMITS, DB_PATH, CERTIFICATE_TEXT
 
 load_dotenv(Path(__file__).parent / ".env")
 logging.basicConfig(level=logging.INFO)
@@ -53,7 +53,7 @@ def submit():
     store.append_log(log_entry)
     store.set_status(result["content_id"], "classified")
 
-    return jsonify({
+    resp = {
         "content_id": result["content_id"],
         "label_key": result["label_key"],
         "label": result["label"],
@@ -62,7 +62,10 @@ def submit():
         "sty_score": result["sty_score"],
         "llm_score": result["llm_score"],
         "audit_reason": result["audit_reason"],
-    }), 200
+    }
+    if store.get_creator_status(creator_id) == "verified_human":
+        resp["certificate"] = CERTIFICATE_TEXT
+    return jsonify(resp), 200
 
 
 @app.route("/appeal", methods=["POST"])
@@ -91,6 +94,73 @@ def appeal():
         "content_id": content_id,
         "status": "under_review",
         "message": "Your appeal has been received and will be reviewed.",
+    }), 200
+
+
+@app.route("/verify", methods=["POST"])
+def verify():
+    body = request.get_json(silent=True) or {}
+    creator_id = body.get("creator_id", "").strip()
+    sample_text = body.get("sample_text", "").strip()
+    attestation = body.get("attestation", "").strip()
+
+    if not creator_id:
+        return jsonify({"error": "creator_id is required"}), 400
+    if not attestation:
+        return jsonify({"error": "attestation is required"}), 400
+
+    reject = length_guard(sample_text)
+    if reject:
+        return jsonify({"error": reject}), 422
+
+    advisory = pipeline.classify(sample_text, _client)
+
+    store.set_creator_status(creator_id, "pending_review")
+    store.append_log({
+        "content_id": creator_id,
+        "entry_type": "verification_request",
+        "creator_id": creator_id,
+        "attestation": attestation,
+        "advisory_label_key": advisory["label_key"],
+        "advisory_confidence": advisory["confidence"],
+        "advisory_sty_score": advisory["sty_score"],
+        "advisory_llm_score": advisory["llm_score"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return jsonify({
+        "creator_id": creator_id,
+        "status": "pending_review",
+        "advisory_label_key": advisory["label_key"],
+        "message": "Verification request received and queued for human review.",
+    }), 200
+
+
+@app.route("/verify/review", methods=["POST"])
+def verify_review():
+    body = request.get_json(silent=True) or {}
+    creator_id = body.get("creator_id", "").strip()
+    approve = body.get("approve")
+
+    if not creator_id:
+        return jsonify({"error": "creator_id is required"}), 400
+    if approve is None:
+        return jsonify({"error": "approve is required"}), 400
+
+    new_status = "verified_human" if approve else "denied"
+    store.set_creator_status(creator_id, new_status)
+    store.append_log({
+        "content_id": creator_id,
+        "entry_type": "verification_review",
+        "creator_id": creator_id,
+        "decision": new_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return jsonify({
+        "creator_id": creator_id,
+        "status": new_status,
+        "message": f"Creator status set to {new_status}.",
     }), 200
 
 

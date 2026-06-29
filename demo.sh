@@ -47,6 +47,20 @@ echo "=== 6. Analytics dashboard (stretch) ==="
 curl -s "$BASE/analytics" | jq .
 echo
 
+echo "=== 7. Provenance certificate — request verification ==="
+VERIFY=$(jq -nc --arg c "demo-formal" --arg t "$FORMAL_HUMAN" --arg a "I wrote this myself. I am an economist and this is my professional writing style." '{creator_id:$c, sample_text:$t, attestation:$a}')
+curl -s -X POST "$BASE/verify" -H "Content-Type: application/json" -d "$VERIFY" | jq .
+echo
+
+echo "=== 8. Reviewer approves the verification ==="
+REVIEW=$(jq -nc --arg c "demo-formal" '{creator_id:$c, approve:true}')
+curl -s -X POST "$BASE/verify/review" -H "Content-Type: application/json" -d "$REVIEW" | jq .
+echo
+
+echo "=== 9. Verified creator submits — response includes certificate ==="
+submit "$FORMAL_HUMAN" demo-formal | jq '{label_key,label,certificate}'
+echo
+
 echo "=== DONE. Now restart the server, then run rate_limit_demo below ==="
 
 # ----------------------------------------------------------------------

@@ -193,6 +193,39 @@ a day. In-memory storage is fine for a single-process demo; a production
 deployment with multiple workers would move the limiter to Redis so the counts
 hold across processes.
 
+## Provenance Certificate
+
+A creator-level "verified human" badge, earned through attestation and human
+review. Two endpoints handle the flow:
+
+```
+POST /verify          { creator_id, sample_text, attestation }
+POST /verify/review   { creator_id, approve: true|false }
+```
+
+`/verify` runs the detector on `sample_text` for an **advisory read only** — the
+result informs the reviewer but never auto-approves or auto-denies. Creator status
+moves to `pending_review` and the advisory scores are written to the audit log.
+
+`/verify/review` is the reviewer decision: `approve: true` sets status to
+`verified_human`; `false` sets it to `denied`. Both decisions are logged.
+
+When a verified creator submits content, `/submit` returns a `certificate` field
+alongside the normal detection label:
+
+> ✓ Verified human creator — completed authorship verification. This badge
+> reflects the creator's verification, not an analysis of this text.
+
+**Why human review, not automated.** A writing-sample challenge that auto-verified
+by running the detector would inherit the detector's formal-text bias — it could
+deny the exact writers the system exists to protect. The detector's advisory read
+is input to a human reviewer, not a gate.
+
+**Creator-level, not content-level.** Detection still runs on every submission. A
+verified creator can post AI-generated text; if so, the response will carry both
+the `certificate` (about the creator) and a `Likely AI` label (about the content).
+That disagreement is intentional — it's the honest signal.
+
 ## Known Limitations
 
 **Formal, technical, and non-native English writing.** This is the system's

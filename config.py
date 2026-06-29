@@ -29,6 +29,12 @@ UNCERTAIN_REASONS = (
 
 DB_PATH = "provenance.db"
 
+# Provenance certificate — shown when creator is verified_human
+CERTIFICATE_TEXT = (
+    "✓ Verified human creator — completed authorship verification. "
+    "This badge reflects the creator's verification, not an analysis of this text."
+)
+
 # Rate limiting
 RATE_LIMITS = "10 per minute;100 per day"
 

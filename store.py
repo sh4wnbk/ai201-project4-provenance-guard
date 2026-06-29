@@ -22,6 +22,12 @@ class Store:
                     status     TEXT NOT NULL
                 )
             """)
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS creator_status (
+                    creator_id TEXT PRIMARY KEY,
+                    status     TEXT NOT NULL
+                )
+            """)
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.path)
@@ -79,3 +85,20 @@ class Store:
 
     def known_content_id(self, content_id: str) -> bool:
         return self.get_status(content_id) is not None
+
+    # --- Creator verification status ---
+
+    def set_creator_status(self, creator_id: str, status: str) -> None:
+        with self._connect() as con:
+            con.execute(
+                "INSERT INTO creator_status (creator_id, status) VALUES (?,?) "
+                "ON CONFLICT(creator_id) DO UPDATE SET status=excluded.status",
+                (creator_id, status),
+            )
+
+    def get_creator_status(self, creator_id: str) -> str:
+        with self._connect() as con:
+            row = con.execute(
+                "SELECT status FROM creator_status WHERE creator_id=?", (creator_id,)
+            ).fetchone()
+        return row["status"] if row else "unverified"
